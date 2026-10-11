@@ -52,15 +52,17 @@
       border-radius: 12px;
       font-size: 1.3rem;
       cursor: pointer;
-      transition: transform 0.1s ease, opacity 0.2s ease;
+      transition: transform 0.1s ease, opacity 0.2s ease, box-shadow 0.1s ease;
     }
 
     button:hover {
       opacity: 0.95;
     }
 
-    button:active {
+    button:active,
+    button.pressed {
       transform: scale(0.98);
+      box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.5);
     }
 
     .operator {
@@ -210,6 +212,75 @@
       updateDisplay();
     }
 
+    function getButtonForKey(key) {
+      const selector = key === 'Enter' || key === '='
+        ? '[data-action="equals"]'
+        : key === 'Backspace' || key === 'Delete'
+          ? '[data-action="delete"]'
+          : key === 'Escape' || key === 'c' || key === 'C'
+            ? '[data-action="clear"]'
+            : `button[data-value="${key}"]`;
+
+      return document.querySelector(selector);
+    }
+
+    function pressButton(button) {
+      if (!button) return;
+      button.classList.add('pressed');
+      setTimeout(() => button.classList.remove('pressed'), 120);
+    }
+
+    function handleKeyInput(event) {
+      const key = event.key;
+      const isNumber = /^[0-9]$/.test(key);
+      const isOperator = ['+', '-', '*', '/', '%'].includes(key);
+      const isDecimal = key === '.';
+      const isEquals = key === '=' || key === 'Enter';
+      const isClear = key === 'Escape' || key.toLowerCase() === 'c';
+      const isDelete = key === 'Backspace' || key === 'Delete';
+
+      if (isNumber) {
+        event.preventDefault();
+        inputDigit(key);
+        pressButton(getButtonForKey(key));
+        return;
+      }
+
+      if (isOperator) {
+        event.preventDefault();
+        handleOperator(key);
+        pressButton(getButtonForKey(key));
+        return;
+      }
+
+      if (isDecimal) {
+        event.preventDefault();
+        inputDecimal();
+        pressButton(getButtonForKey('.'));
+        return;
+      }
+
+      if (isEquals) {
+        event.preventDefault();
+        evaluate();
+        pressButton(getButtonForKey('Enter'));
+        return;
+      }
+
+      if (isClear) {
+        event.preventDefault();
+        clearCalculator();
+        pressButton(getButtonForKey('Escape'));
+        return;
+      }
+
+      if (isDelete) {
+        event.preventDefault();
+        deleteLastDigit();
+        pressButton(getButtonForKey('Backspace'));
+      }
+    }
+
     document.querySelectorAll('.number').forEach(button => {
       button.addEventListener('click', () => {
         const value = button.dataset.value;
@@ -235,6 +306,7 @@
 
     document.querySelector('[data-action="clear"]').addEventListener('click', clearCalculator);
     document.querySelector('[data-action="delete"]').addEventListener('click', deleteLastDigit);
+    document.addEventListener('keydown', handleKeyInput);
 
     updateDisplay();
   </script>
